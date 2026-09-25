@@ -1,0 +1,10 @@
+main Lucivaldo
+
+design_area = 797
+si_width = 6
+
+falha dura fora da origem: nenhuma
+baseline design_area: 797
+baseline si_width: 6
+baseline si_space: 0
+metal: sem erro

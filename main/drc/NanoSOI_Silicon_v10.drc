@@ -1,0 +1,98 @@
+ #NanoSOI DRC Script, MPW layouts
+ #Written by Jocelyn Bachman for Applied Nanotools
+ #Confidential and Proprietary
+ #Updated February 2026: Flag more problem layers
+ 
+ ################################################
+
+source($gdsfile)
+
+
+#User Input Data
+
+#Choose the number of threads (computer cores)
+threads(2) 
+
+#Choose the tile size. Larger tiles require more memory
+tiles(100.micron,100.micron)
+verbose(true)
+
+ ################################################
+fp = polygon_layer
+fp_dt = polygon_layer
+
+si = input("1/0","31/0","33/0")
+direct = input("5/0")
+tiw = input("11/0")
+au = input("12/0")
+ox_open = input("13/0")
+sem = input("200/0").raw()
+si_pin = input("1/10")
+dt = input("201/0")
+dt_ex = input("202/0")
+iso = input("203/0")
+dicing = input("189/0")
+black_box = input("998/0")
+window = input("6/0")
+
+report("NanoSOI DRC Report", $resultsfile)
+
+si_pin.width(100.micron).output("pin_layer","Warning: Features on Layer 1/10 will NOT be printed on final design")
+black_box.width(100.micron).output("black_box","Warning: Features on Layer 998 are a black box cell only, not ready for fabrication")
+window.width(100.micron).output("window","Warning: Features on Layer 6 require approval from ANT")
+
+si.width(0.058.micron,angle_limit(30)).output("si_width","Silicon width is less than 60 nm")  
+waive = si.space(0.008.micron,projection,angle_limit(30),projecting>0.008.um).edges
+temp = si.space(0.068.micron,projection,angle_limit(30),projecting>0.008.um).edges
+temp.not(waive).output("si_space","Silicon spacing is less than 70 nm")
+
+direct.width(4.98.micron,angle_limit(30)).output("direct_width","Direct metal width is less than 5 microns")
+direct.space(9.98.micron,angle_limit(30)).output("direct_space","Direct metal spacing is less than 10 microns")
+
+tiw.width(2.98.micron,angle_limit(30)).output("tiw_width","TiW width is less than 3 microns")
+tiw.space(2.98.micron,angle_limit(30)).output("tiw_space","TiW spacing is less than 3 microns")
+
+au.width(4.98.micron,angle_limit(30)).output("au_width","Gold width is less than 5 microns")
+au.space(7.98.micron,angle_limit(30)).output("au_space","Gold spacing is less than 8 microns")
+
+ox_open.width(10.micron,angle_limit(30)).output("bp_open_width","Bond pad open width is less than 10 microns")
+ox_open.space(10.micron,angle_limit(30)).output("bp_open_space","Bond pad open spacing is less than 10 microns")
+
+sem.width(0.5.micron,angle_limit(90)).output("sem_width","SEM width is less than 500 nm")
+
+au.enclosing(ox_open,5.micron).output("bp_not_in_au","Bond pad open is enclosed within Gold layer by 5 microns")
+tiw.separation(au,5.micron,angle_limit(90)).output("tiw_au_space","Spacing between discrete TiW and Au features is less than 5 microns")
+
+dicing.width(100.micron,angle_limit(90)).output("dicing_width","Dicing lane width is less than 100 microns")
+all = input("1/0","5/0","11/0","12/0","13/0")
+dicing.separation(all,50.micron).output("dicing_space","Spacing between dicing lane and feature is less than 50 microns")
+
+n = dt.is_empty?
+metal = input("11/0","12/0","13/0")
+all = si+sem+metal
+ 
+if n == true
+  all.outside(fp.insert(box(-4500,-4500,4500,4500))).output("design_area","Features outside 9 x 9 mm design area, verify design is centered at (0,0)")
+
+else
+  trench = input("201/0","202/0","203/0")
+  metal.separation(dt,35.micron).output("dt_metal","Spacing between metal and deep trench is less than 35 microns")
+  metal.interacting(trench).output("dt_metal_overlap","Metal overlaps with deep trench or deep trench handling region")
+  sem.interacting(dt).output("dt_sem_overlap","SEM imaging location is overlapping deep trench region")
+  si.interacting(dt).output("dt_si","Silicon within deep trench region; acceptable if terminating edge couplers")
+  all.outside(fp_dt.insert(box(-4650,-4650,4650,4650))).output("design_area","Features outside 9 x 9 mm design area, verify design is centered at (0,0)")
+  
+  iso.width(15.micron,angle_limit(30)).output("thermal_isolation_width","Thermal isolation trench width is less than 15 microns")
+  iso.space(15.micron,angle_limit(30)).output("thermal_isolation_space","Thermal isolation trench spacing is less than 15 microns")
+  iso.separation(metal,15.micron).output("thermal_isolation_metal_space","Spacing between thermal isolation trenches and metal is less than 15 microns")
+  iso.separation(si,10.micron).output("thermal_isolation_si_space","Spacing between thermal isolation trenches and Si features is less than 10 microns")
+  iso.overlap(si,10.micron).output("thermal_isolation_si_overlap","Device layer overlaps with thermal isolation trenches")
+  val = dt_ex.is_empty?
+
+  if val==true
+    dt_ex.output("dt_handle","Deep trench handling area missing")
+  end
+  
+  all.interacting(dt_ex).output("dt_handle_overlap","Features inside deep trench handling region")
+
+end

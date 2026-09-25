@@ -1,0 +1,12 @@
+main com isa-jose-v1
+
+black_box = 1845
+design_area = 797
+pin_layer = 28
+si_width = 6
+
+falha dura fora da origem: nenhuma
+baseline design_area: medido 797, origem 797
+baseline si_width: medido 6, origem 6
+baseline si_space: medido 0, origem 0
+metal: sem erro
